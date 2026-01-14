@@ -136,8 +136,8 @@ int tiny_tone_encoder(uint64_t silence_frame, uint8_t idx, uint8_t gain_step, ui
   for (int i = 0; i < 8; i++)
     output[i] = (silence_frame >> (56-(i*8))) & 0xFF;
 
-  //currently only up to 0x74 values
-  if (idx > 0x74)
+  //currently only up to 0x4A values
+  if (idx >= 0x4A)
     return -1;
 
   //check gain value
