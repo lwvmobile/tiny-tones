@@ -18,9 +18,13 @@ A tiny tone frame is laid out such that is uses this basic structure for 3200 an
 Where as:
 
 QQ - Original Silence Frame Bits
+
 P  - Payload Indicator Value (0xF)
+
 G  - Gain Step Value
+
 FX - Frame Index ID
+
 CS - Checksum
 
 ## Payload Indicator
