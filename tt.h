@@ -24,6 +24,7 @@
 #define FTOSGAIN 25
 
 //TODO: Make this a struct?
+extern int tone_pitch;
 extern int tone_n;
 extern int tone_frames_to_send;
 extern uint8_t tone_idx;

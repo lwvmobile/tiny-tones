@@ -9,6 +9,7 @@
 #include "tt.h"
 
 //extern global variables
+int tone_pitch;
 int tone_n;
 int tone_frames_to_send;
 uint8_t tone_idx;
@@ -93,7 +94,7 @@ int tiny_tone_decoder (uint64_t silence_frame, uint8_t * input, int n, int len, 
   }
 
   //debug loading values
-  // fprintf (stderr, " I: %02X; %f / %f ", index, freqhigh, freqlow);
+  fprintf (stderr, " I: %02X; %f / %f ", index, freqhigh, freqlow);
 
   float step1 = 2 * M_PI * freqhigh / 8000.0f;
   float step2 = 2 * M_PI * freqlow / 8000.0f;
@@ -175,6 +176,7 @@ void init_tt_static(void)
   tone_frames_to_send = 0;
   tone_idx = 0;
   tone_gain = 0xF;
+  tone_pitch = 0;
 }
 
 //debug test build with gcc -o test tt.c -lm -DNEEDSMAIN -Wall -Wextra -Wpedantic
