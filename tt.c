@@ -94,7 +94,9 @@ int tiny_tone_decoder (uint64_t silence_frame, uint8_t * input, int n, int len, 
   }
 
   //debug loading values
-  fprintf (stderr, " I: %02X; %f / %f ", index, freqhigh, freqlow);
+  // if (index <= 0x1F)
+  //   fprintf (stderr, " I: %02X; %f / %f ", index, freqhigh, freqlow);
+  // else fprintf (stderr, " I: %02X; %f ", index, freqlow);
 
   float step1 = 2 * M_PI * freqhigh / 8000.0f;
   float step2 = 2 * M_PI * freqlow / 8000.0f;
