@@ -31,19 +31,19 @@ CS - Checksum
 
 A 4-bit value that is always 0xF to help identify tone frames from silence frames.
 
-## Frame Index ID
-
-Frame Index ID values ranging from 0x00 to 0x0F correspond to DTMF tones.
-
-Frame Index ID values ranging from 0x10 to 0x1F correspond to KNOX tones.
-
-Frame Index ID values ranging from 0x20 to 0x4A correspond to musical notes G3 to B6.
-
-see `tt.h` for a comprehensive breakdown of values.
-
 ## Gain Step Value
 
 The 4-bit gain stepping is calculated such that each value of 0-15 is a multiple of 6.25%, whereas 0 = 6.25% and 15 = 100%.
+
+## Frame Index ID
+
+Frame Index ID values ranging from 0x00 to 0x0F correspond to DTMF tones 1-9, A, B, C, D, *, #.
+
+Frame Index ID values ranging from 0x10 to 0x1F correspond to KNOX tones 1-9, A, B, C, D, *, #.
+
+Frame Index ID values ranging from 0x20 to 0x49 correspond to musical notes G3 through C7.
+
+see `tt.h` for a comprehensive breakdown of values.
 
 ## Checksum
 

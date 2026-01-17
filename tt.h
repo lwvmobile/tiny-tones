@@ -9,7 +9,7 @@
 #ifndef TT_H
 #define TT_H
 
-#define TT_VER 0.1
+#define TT_VER 0.1.1
 
 #include <string.h>
 #include <stdint.h>
@@ -22,6 +22,7 @@
 #define LEN_1600 320
 
 #define FTOSGAIN 25
+#define MAX_TT_FRAMES 0x49
 
 //TODO: Make this a struct?
 extern int tone_pitch;
@@ -141,6 +142,9 @@ static const float note_frequencies[42] = {
   1760.00f,  // A6
   1864.66f,  // A#6 / Bb6
   1975.53f,  // B6
+
+  //Octave 7
+  2095.00f   // C7
 };
 
 #endif //TT_H

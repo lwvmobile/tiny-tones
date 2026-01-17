@@ -8,6 +8,9 @@
 
 #include "tt.h"
 
+// #define DEBUG_TT_ENCODE
+// #define DEBUG_TT_DECODE
+
 //extern global variables
 int tone_pitch;
 int tone_n;
@@ -81,7 +84,7 @@ int tiny_tone_decoder (uint64_t silence_frame, uint8_t * input, int n, int len, 
     freqhigh = knox_tones[index - 0x10][0];
     freqlow  = knox_tones[index - 0x10][1];
   }
-  else if (index > 0x1F && index <= 0x48) //musical notes
+  else if (index > 0x1F && index <= 0x49) //musical notes
   {
     freqhigh = note_frequencies[index - 0x20];
     freqlow  = 0;
@@ -93,10 +96,14 @@ int tiny_tone_decoder (uint64_t silence_frame, uint8_t * input, int n, int len, 
     return -4;
   }
 
+  #ifdef DEBUG_TT_DECODE
   //debug loading values
-  // if (index <= 0x1F)
-  //   fprintf (stderr, " I: %02X; %f / %f ", index, freqhigh, freqlow);
-  // else fprintf (stderr, " I: %02X; %f ", index, freqlow);
+  if (index <= 0xF)
+    fprintf (stderr, " IDX: %02X (%02d); G: %X; F: %f / %f ", index, index, gain_step, freqhigh, freqlow);
+  else if (index <= 0x1F)
+    fprintf (stderr, " IDX: %02X (%02d); G: %X; F: %f / %f ", index, index-0x10, gain_step, freqhigh, freqlow);
+  else fprintf (stderr, " IDX: %02X (%02d); G: %X; F: %f ", index, index-0x20, gain_step, freqlow);
+  #endif
 
   float step1 = 2 * M_PI * freqhigh / 8000.0f;
   float step2 = 2 * M_PI * freqlow / 8000.0f;
@@ -139,8 +146,8 @@ int tiny_tone_encoder(uint64_t silence_frame, uint8_t idx, uint8_t gain_step, ui
   for (int i = 0; i < 8; i++)
     output[i] = (silence_frame >> (56-(i*8))) & 0xFF;
 
-  //currently only up to 0x4A values
-  if (idx >= 0x4A)
+  //currently only up to and including 0x49
+  if (idx > 0x49)
     return -1;
 
   //check gain value
@@ -166,6 +173,15 @@ int tiny_tone_encoder(uint64_t silence_frame, uint8_t idx, uint8_t gain_step, ui
 
   output[7] = checksum;
 
+  #ifdef DEBUG_TT_ENCODE
+  //debug loading values
+  if (idx <= 0xF)
+    fprintf (stderr, " IDX: %02X (%02d); G: %X; F: %d / %d ", idx, idx, gain_step, dtmf_tones[idx][0], dtmf_tones[idx][1]);
+  else if (idx <= 0x1F)
+    fprintf (stderr, " IDX: %02X (%02d); G: %X; F: %d / %d ", idx, idx-0x10, gain_step, knox_tones[idx-0x10][0], knox_tones[idx-0x10][1]);
+  else fprintf (stderr, " IDX: %02X (%02d); G: %X; F: %f ", idx, idx-0x20, gain_step, note_frequencies[idx-0x20]);
+  #endif
+
   return 1;
 
 
@@ -181,24 +197,95 @@ void init_tt_static(void)
   tone_pitch = 0;
 }
 
-//debug test build with gcc -o test tt.c -lm -DNEEDSMAIN -Wall -Wextra -Wpedantic
-#ifdef NEEDSMAIN
+//unit test build with gcc or clang
+//gcc -o test tt.c -lm -DTT_UNIT_TEST -DDEBUG_TT_DECODE -DDEBUG_TT_ENCODE -Wall -Wextra -Wpedantic
+//clang -o test tt.c -lm -DTT_UNIT_TEST -DDEBUG_TT_DECODE -DDEBUG_TT_ENCODE -Wall -Wextra -Wpedantic
+#ifdef TT_UNIT_TEST
 int main (void)
 {
+
   uint8_t bytes[8];
-  memset (bytes, 0, sizeof(bytes));
-
   short audio[320];
-  memset (audio, 0, sizeof(audio));
 
-  int n = 0;
+  init_tt_static();
 
-  //3200
-  n = tiny_tone_decoder (SILENCE_3200, bytes, n, LEN_3200, audio);
+  //unit test encode, decode and dump all possible tone frames
+  fprintf (stderr, "3200 Frames: \n");
+  for (uint8_t i = 0; i <= MAX_TT_FRAMES; i++)
+  {
+    for (uint8_t j = 0; j < 16; j++)
+    {
+      memset (bytes, 0, sizeof(bytes));
+      int ret = tiny_tone_encoder(SILENCE_3200, i, j, bytes);
+      if (ret > 0)
+        fprintf (stderr, "OK; ");
+      else fprintf (stderr, "FAIL (%i); ", ret);
 
-  //1600
-  n = tiny_tone_decoder (SILENCE_1600, bytes, n, LEN_1600, audio);
+      for (int k = 0; k < 8; k++)
+        fprintf (stderr, "%02X", bytes[k]);
 
-  return n;
+      //decode
+      fprintf (stderr, " --");
+      memset (audio, 0, sizeof(audio));
+      tone_n = 0;
+      tone_n = tiny_tone_decoder(SILENCE_3200, bytes, tone_n, LEN_3200, audio);
+
+      if (tone_n > 0)
+        fprintf (stderr, "OK; ");
+      else fprintf (stderr, "FAIL (%i); ", tone_n);
+
+      //dump audio samples
+      // fprintf (stderr, "\n");
+      // for (int k = 0; k < LEN_3200; k++)
+      // {
+      //   if (k != 0 && k % 16 == 0)
+      //     fprintf (stderr, "\n");
+      //   fprintf (stderr, "(%d)", audio[k]);
+      // }
+
+      fprintf (stderr, "\n");
+    }
+    
+  }
+
+  fprintf (stderr, "1600 Frames: \n");
+  for (uint8_t i = 0; i <= MAX_TT_FRAMES; i++)
+  {
+    for (uint8_t j = 0; j < 16; j++)
+    {
+      memset (bytes, 0, sizeof(bytes));
+      int ret = tiny_tone_encoder(SILENCE_1600, i, j, bytes);
+      if (ret > 0)
+        fprintf (stderr, "OK; ");
+      else fprintf (stderr, "FAIL (%i); ", ret);
+
+      for (int k = 0; k < 8; k++)
+        fprintf (stderr, "%02X", bytes[k]);
+
+      //decode
+      fprintf (stderr, " --");
+      memset (audio, 0, sizeof(audio));
+      tone_n = 0;
+      tone_n = tiny_tone_decoder(SILENCE_1600, bytes, tone_n, LEN_1600, audio);
+
+      if (tone_n > 0)
+        fprintf (stderr, "OK; ");
+      else fprintf (stderr, "FAIL (%i); ", tone_n);
+
+      //dump audio samples
+      // fprintf (stderr, "\n");
+      // for (int k = 0; k < LEN_1600; k++)
+      // {
+      //   if (k != 0 && k % 16 == 0)
+      //     fprintf (stderr, "\n");
+      //   fprintf (stderr, "(%d)", audio[k]);
+      // }
+
+      fprintf (stderr, "\n");
+    }
+    
+  }
+
+  return tone_n;
 }
 #endif
