@@ -37,9 +37,9 @@ The 4-bit gain stepping is calculated such that each value of 0-15 is a multiple
 
 ## Frame Index ID
 
-Frame Index ID values ranging from 0x00 to 0x0F correspond to DTMF tones 1-9, A, B, C, D, *, #.
+Frame Index ID values ranging from 0x00 to 0x0F correspond to DTMF tones 0-9, A, B, C, D, *, #.
 
-Frame Index ID values ranging from 0x10 to 0x1F correspond to KNOX tones 1-9, A, B, C, D, *, #.
+Frame Index ID values ranging from 0x10 to 0x1F correspond to KNOX tones 0-9, A, B, C, D, *, #.
 
 Frame Index ID values ranging from 0x20 to 0x49 correspond to musical notes G3 through C7.
 
