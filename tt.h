@@ -9,7 +9,7 @@
 #ifndef TT_H
 #define TT_H
 
-#define TT_VER 0.1.1
+#define TT_VER "0.1.2"
 
 #include <string.h>
 #include <stdint.h>
@@ -21,23 +21,25 @@
 #define LEN_3200 160
 #define LEN_1600 320
 
-#define FTOSGAIN 25
+#define FTOSGAIN 35
 #define MAX_TT_FRAMES 0x49
 
-//TODO: Make this a struct?
-extern int tone_pitch;
-extern int tone_n;
-extern int tone_frames_to_send;
-extern uint8_t tone_idx;
-extern uint8_t tone_gain;
+typedef struct
+{
+  int tone_pitch;
+  int tone_phase;
+  int tone_frames_to_send;
+  uint8_t tone_idx;
+  uint8_t tone_gain;
+} TINY_TONES;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 //function prototypes
-void init_tt_static(void);
-int tiny_tone_decoder (uint64_t silence_frame, uint8_t * input, int n, int len, short * audio);
+void init_tt_struct(TINY_TONES * tt);
+int tiny_tone_decoder (uint64_t silence_frame, uint8_t * input, int tone_phase, int len, short * audio);
 int tiny_tone_encoder(uint64_t silence_frame, uint8_t idx, uint8_t gain_step, uint8_t * output);
 
 #ifdef __cplusplus
@@ -47,7 +49,7 @@ int tiny_tone_encoder(uint64_t silence_frame, uint8_t idx, uint8_t gain_step, ui
 /*
 Tone Values 0x00 - 0x0F are DTMF Tones
 Tone Values 0x10 - 0x1F are Knox Tones
-Tone Values 0x20 - 0x4A are Musical Notes
+Tone Values 0x20 - 0x49 are Musical Notes
 */
 
 /* DTMF tone pairs - most common format used in code */

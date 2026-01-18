@@ -11,20 +11,13 @@
 // #define DEBUG_TT_ENCODE
 // #define DEBUG_TT_DECODE
 
-//extern global variables
-int tone_pitch;
-int tone_n;
-int tone_frames_to_send;
-uint8_t tone_idx;
-uint8_t tone_gain;
-
 //silence_frame is the defined silence_frame for decoder type - SILENCE_3200 or SILENCE_1600
 //input is uint8_t byte array of M17 / Codec2 1600 or 3200 single payload sample
 //n is an rolling integer value held by calling function that should be retained between frames
 //len is the amount of audio samples below to produce - LEN_3200 or LEN_1600
 //audio is short audio samples of S16LE audio samples at 8k/1 at len value
 //return value is flag to signal this is a tone frame (n) or not (-1, -2, -3, -4)
-int tiny_tone_decoder (uint64_t silence_frame, uint8_t * input, int n, int len, short * audio)
+int tiny_tone_decoder (uint64_t silence_frame, uint8_t * input, int tone_phase, int len, short * audio)
 {
 
   //zero fill audio
@@ -113,8 +106,8 @@ int tiny_tone_decoder (uint64_t silence_frame, uint8_t * input, int n, int len, 
   //produce audio samples based on frequency, and gain
   for (int i = 0; i < len; i++)
   {
-    float_audio[i] = (float) ( gain * (sin((n) * step1)/2 + sin((n) * step2)/2) );
-    n++;
+    float_audio[i] = (float) ( gain * (sin((tone_phase) * step1)/2 + sin((tone_phase) * step2)/2) );
+    tone_phase++;
   }
 
   //convert float audio to short audio S16LE 8k1
@@ -130,7 +123,7 @@ int tiny_tone_decoder (uint64_t silence_frame, uint8_t * input, int n, int len, 
   }
 
   //valid tone frame
-  return n;
+  return tone_phase;
 
 }
 
@@ -187,14 +180,14 @@ int tiny_tone_encoder(uint64_t silence_frame, uint8_t idx, uint8_t gain_step, ui
 
 }
 
-//initialize extern global / static values
-void init_tt_static(void)
+//initialize TINY_TONES struct
+void init_tt_struct(TINY_TONES * tt)
 {
-  tone_n = 0;
-  tone_frames_to_send = 0;
-  tone_idx = 0;
-  tone_gain = 0xF;
-  tone_pitch = 0;
+  tt->tone_phase = 0;
+  tt->tone_frames_to_send = 0;
+  tt->tone_idx = 0;
+  tt->tone_gain = 0xF;
+  tt->tone_pitch = 0;
 }
 
 //unit test build with gcc or clang
@@ -207,7 +200,9 @@ int main (void)
   uint8_t bytes[8];
   short audio[320];
 
-  init_tt_static();
+  TINY_TONES tt;
+
+  init_tt_struct(&tt);
 
   //unit test encode, decode and dump all possible tone frames
   fprintf (stderr, "3200 Frames: \n");
@@ -227,12 +222,12 @@ int main (void)
       //decode
       fprintf (stderr, " --");
       memset (audio, 0, sizeof(audio));
-      tone_n = 0;
-      tone_n = tiny_tone_decoder(SILENCE_3200, bytes, tone_n, LEN_3200, audio);
+      tt.tone_phase = 0;
+      tt.tone_phase = tiny_tone_decoder(SILENCE_3200, bytes, tt.tone_phase, LEN_3200, audio);
 
-      if (tone_n > 0)
+      if (tt.tone_phase > 0)
         fprintf (stderr, "OK; ");
-      else fprintf (stderr, "FAIL (%i); ", tone_n);
+      else fprintf (stderr, "FAIL (%i); ", tt.tone_phase);
 
       //dump audio samples
       // fprintf (stderr, "\n");
@@ -265,12 +260,12 @@ int main (void)
       //decode
       fprintf (stderr, " --");
       memset (audio, 0, sizeof(audio));
-      tone_n = 0;
-      tone_n = tiny_tone_decoder(SILENCE_1600, bytes, tone_n, LEN_1600, audio);
+      tt.tone_phase = 0;
+      tt.tone_phase = tiny_tone_decoder(SILENCE_1600, bytes, tt.tone_phase, LEN_1600, audio);
 
-      if (tone_n > 0)
+      if (tt.tone_phase > 0)
         fprintf (stderr, "OK; ");
-      else fprintf (stderr, "FAIL (%i); ", tone_n);
+      else fprintf (stderr, "FAIL (%i); ", tt.tone_phase);
 
       //dump audio samples
       // fprintf (stderr, "\n");
@@ -286,6 +281,6 @@ int main (void)
     
   }
 
-  return tone_n;
+  return tt.tone_phase;
 }
 #endif
