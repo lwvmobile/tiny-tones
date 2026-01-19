@@ -63,25 +63,19 @@ int tiny_tone_decoder (uint64_t silence_frame, uint8_t * input, int tone_phase, 
   uint8_t index = input[6];
 
   //gain value is a stepping of 6.25, where as 15 = 100%, and 0 = 6.25%
-  float gain = (gain_step + 1) * 6.25f;
+  int gain = (gain_step + 1) * 6.25;
 
   //lookup frequencies based on value on the index
-  float freqhigh = 0.0f, freqlow = 0.0f;
-  if (index <= 0x0F) //DTMF tones
+  int freqhigh = 0, freqlow = 0;
+  if (index <= 0x20)
   {
-    freqhigh = dtmf_tones[index][0];
-    freqlow  = dtmf_tones[index][1];
+    freqhigh = tt_frequencies[index][0];
+    freqlow  = tt_frequencies[index][1];
   }
-  else if (index > 0x0F && index <= 0x1F) //KNOX tones
+  else if (index <= MAX_TT_FRAMES)
   {
-    freqhigh = knox_tones[index - 0x10][0];
-    freqlow  = knox_tones[index - 0x10][1];
-  }
-  else if (index > 0x1F && index <= 0x49) //musical notes
-  {
-    freqhigh = note_frequencies[index - 0x20];
-    freqlow  = 0;
-    freqlow = freqhigh; //still correct note?
+    freqhigh = tt_frequencies[index][0] / 100;
+    freqlow  = tt_frequencies[index][1] / 100;
   }
   else
   {
@@ -91,35 +85,18 @@ int tiny_tone_decoder (uint64_t silence_frame, uint8_t * input, int tone_phase, 
 
   #ifdef DEBUG_TT_DECODE
   //debug loading values
-  if (index <= 0xF)
-    fprintf (stderr, " IDX: %02X (%02d); G: %X; F: %f / %f ", index, index, gain_step, freqhigh, freqlow);
-  else if (index <= 0x1F)
-    fprintf (stderr, " IDX: %02X (%02d); G: %X; F: %f / %f ", index, index-0x10, gain_step, freqhigh, freqlow);
-  else fprintf (stderr, " IDX: %02X (%02d); G: %X; F: %f ", index, index-0x20, gain_step, freqlow);
+  if (index < 0x20)
+    fprintf (stderr, " Index: %02X; Gain Step: %X (%03d%%); Freq: %d / %d ", index, gain_step, gain, freqhigh, freqlow);
+  else fprintf (stderr, " Index: %02X; Gain Step: %X (%03d%%); Freq: %d ", index, gain_step, gain, freqhigh);
   #endif
-
-  float step1 = 2 * M_PI * freqhigh / 8000.0f;
-  float step2 = 2 * M_PI * freqlow / 8000.0f;
-
-  float float_audio[len]; memset(float_audio, 0.0f, sizeof(float_audio));
 
   //produce audio samples based on frequency, and gain
   for (int i = 0; i < len; i++)
   {
-    float_audio[i] = (float) ( gain * (sin((tone_phase) * step1)/2 + sin((tone_phase) * step2)/2) );
+    audio[i] = FTOSGAIN * gain 
+      * (sin((tone_phase) * (2 * M_PI * freqhigh / 8000))/2 
+      +  sin((tone_phase) * (2 * M_PI * freqlow  / 8000))/2);
     tone_phase++;
-  }
-
-  //convert float audio to short audio S16LE 8k1
-  for (int i = 0; i < len; i++)
-  {
-    audio[i] = (short)(float_audio[i] * FTOSGAIN);
-
-    //clipping (honestly don't think this will be an issue)
-    if (audio[i] > 32760)
-      audio[i] = 32760;
-    else if (audio[i] < -32760)
-      audio[i] = -32760;
   }
 
   //valid tone frame
@@ -139,8 +116,8 @@ int tiny_tone_encoder(uint64_t silence_frame, uint8_t idx, uint8_t gain_step, ui
   for (int i = 0; i < 8; i++)
     output[i] = (silence_frame >> (56-(i*8))) & 0xFF;
 
-  //currently only up to and including 0x49
-  if (idx > 0x49)
+  //make sure index is within number of frames encodable
+  if (idx > MAX_TT_FRAMES)
     return -1;
 
   //check gain value
@@ -168,15 +145,12 @@ int tiny_tone_encoder(uint64_t silence_frame, uint8_t idx, uint8_t gain_step, ui
 
   #ifdef DEBUG_TT_ENCODE
   //debug loading values
-  if (idx <= 0xF)
-    fprintf (stderr, " IDX: %02X (%02d); G: %X; F: %d / %d ", idx, idx, gain_step, dtmf_tones[idx][0], dtmf_tones[idx][1]);
-  else if (idx <= 0x1F)
-    fprintf (stderr, " IDX: %02X (%02d); G: %X; F: %d / %d ", idx, idx-0x10, gain_step, knox_tones[idx-0x10][0], knox_tones[idx-0x10][1]);
-  else fprintf (stderr, " IDX: %02X (%02d); G: %X; F: %f ", idx, idx-0x20, gain_step, note_frequencies[idx-0x20]);
+  if (idx < 0x20)
+    fprintf (stderr, " Index: %02X; Gain Step: %X (%03d%%); Freq: %d / %d ", idx, gain_step, (int)((gain_step+1) * 6.25), tt_frequencies[idx][0], tt_frequencies[idx][1]);
+  else fprintf (stderr, " Index: %02X; Gain Step: %X (%03d%%); Freq: %d ", idx, gain_step, (int)((gain_step+1) * 6.25), tt_frequencies[idx][0] / 100);
   #endif
 
   return 1;
-
 
 }
 
