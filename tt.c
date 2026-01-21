@@ -10,13 +10,14 @@
 
 // #define DEBUG_TT_ENCODE
 // #define DEBUG_TT_DECODE
+// #define TT_UNIT_TEST
 
 //silence_frame is the defined silence_frame for decoder type - SILENCE_3200 or SILENCE_1600
 //input is uint8_t byte array of M17 / Codec2 1600 or 3200 single payload sample
-//n is an rolling integer value held by calling function that should be retained between frames
+//tone_phase is an rolling integer value held by calling function that should be retained between frames
 //len is the amount of audio samples below to produce - LEN_3200 or LEN_1600
 //audio is short audio samples of S16LE audio samples at 8k/1 at len value
-//return value is flag to signal this is a tone frame (n) or not (-1, -2, -3, -4)
+//return value is flag to signal this is a tone frame (tone_phase) or not (-1, -2, -3, -4)
 int tiny_tone_decoder (uint64_t silence_frame, uint8_t * input, int tone_phase, int len, short * audio)
 {
 
@@ -45,7 +46,7 @@ int tiny_tone_decoder (uint64_t silence_frame, uint8_t * input, int tone_phase, 
   checksum = ~checksum;
   checksum &= 0xFF;
 
-  //checksum error or not tone frame, zero fill audio return as silence frame
+  //checksum error or not tone frame
   if (checksum != input[7])
     return -2;
 
